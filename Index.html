@@ -4,7 +4,9 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>Claude Glass — Clean Build (No Slider)</title>
- 
+ <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f0f0f">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 :root{
   --bg:#0f0f0f; --accent:#d4a373; --text:#fff; --muted:rgba(255,255,255,0.55);
@@ -168,23 +170,7 @@ label{ font-size:.84rem; color:var(--muted); }
 </head>
  
 <body>
- 
-<!-- Auto redirect to debug mode when needed -->
-<script>
-(function(){
-  try{
-    const isCP=/codepen\.io/.test(location.hostname);
-    const ifr=(self!==top);
-    if(isCP && ifr){
-      const dbg=location.href.replace('/full/','/debug/').replace('/pen/','/debug/');
-      if(dbg.includes('/debug/')){
-        try{ top.location.href=dbg }catch(e){ location.href=dbg }
-      }
-    }
-  }catch(e){}
-})();
-</script>
- 
+  
 <div class="app">
   <video id="camera" autoplay playsinline muted></video>
   <!-- === NEW FEATURE: Frozen Frame Canvas START === -->
