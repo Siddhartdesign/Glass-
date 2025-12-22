@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Claude Glass — Clean Build (No Slider)</title>
+<title>Valuemirror</title>
  <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0f0f0f">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -706,7 +706,7 @@ menuBtn.onclick=e=>{
 document.addEventListener("click",()=>menuPanel.style.display="none");
 
 /* === NEW FEATURE: About Dialog Uses Version Constant START === */
-aboutBtn.onclick=()=>alert(`Claude Glass MVP\nVersion ${VERSION}`);
+aboutBtn.onclick=()=>alert(`ValueMirror \nVersion ${VERSION}`);
 /* === NEW FEATURE: About Dialog Uses Version Constant END === */
 
 feedbackBtn.onclick=()=>location.href="mailto:you@domain.com?subject=Claude%20Glass%20Feedback";
@@ -722,6 +722,10 @@ startCamera().then(()=>{
   massingLoop();
 });
 </script>
- 
+ <script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
 </body>
 </html>
