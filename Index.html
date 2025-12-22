@@ -709,7 +709,8 @@ document.addEventListener("click",()=>menuPanel.style.display="none");
 aboutBtn.onclick=()=>alert(`ValueMirror \nVersion ${VERSION}`);
 /* === NEW FEATURE: About Dialog Uses Version Constant END === */
 
-feedbackBtn.onclick=()=>location.href="mailto:you@domain.com?subject=Claude%20Glass%20Feedback";
+feedbackBtn.onclick = () =>
+  location.href = "mailto: sidartdesignlab@gmail.com?subject=ValueMirror%20Feedback";
 clearProBtn.onclick=()=>{
   localStorage.removeItem("claude_pro");
   alert("Pro reset.");
