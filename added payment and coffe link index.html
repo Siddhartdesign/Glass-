@@ -367,7 +367,11 @@ let horizontalFlip=false;
 let verticalFlip=false;
 let massingTones=0;
 let hasReference=false;
-
+  
+/* PRO FLAG =========================================================================================*/
+const isPro = localStorage.getItem("valuemirror_pro") === "1";
+  /* PRO FLAG =========================================================================================*/
+  
 /* === NEW FEATURE: Freeze Camera State START === */
 let isFrozen=false;
 /* === NEW FEATURE: Freeze Camera State END === */
@@ -672,6 +676,15 @@ snapshotBtn.onclick=()=>{
       /* === NEW FEATURE: Snapshot frozen or live END === */
     }
   }
+if (!isPro) {
+  t.save();
+  t.globalAlpha = 0.07;
+  t.fillStyle = "#fff";
+  t.font = "14px system-ui";
+  t.textAlign = "right";
+  t.fillText("ValueMirror", w - 12, h - 12);
+  t.restore();
+}
 
   const data=tmp.toDataURL();
   const viewer = document.getElementById("snapshot-viewer");
