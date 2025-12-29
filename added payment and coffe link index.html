@@ -194,6 +194,18 @@ label{ font-size:.84rem; color:var(--muted); }
           <button id="about-btn">About / Version</button>
           <button id="feedback-btn">Send feedback</button>
           <button id="clear-pro-btn">Reset Pro (debug)</button>
+         <hr>
+
+<div class="menu-section">
+  <h4>Pro</h4>
+  <p>Clean exports (no watermark).</p>
+</div>
+
+<div class="menu-section">
+  <h4>Support</h4>
+  <button id="coffeeBtn" class="btn">Buy me a coffee</button>
+</div>
+
         </div>
  
         <button id="import-btn" class="icon-btn">
@@ -290,6 +302,8 @@ label{ font-size:.84rem; color:var(--muted); }
 <input id="file-input" type="file" accept="image/*" style="display:none">
  
 <script>
+ document.addEventListener("DOMContentLoaded", () => {
+
 /* === NEW FEATURE: Version Constant START === */
 const VERSION = "1.0.0";
 /* === NEW FEATURE: Version Constant END === */
@@ -304,12 +318,20 @@ const ctxFrozen=frozen.getContext("2d");
 /* === NEW FEATURE: Frozen Canvas Element END === */
 const ctxMass=massing.getContext("2d");
 const ctxRef=reference.getContext("2d");
- 
+
 const menuBtn=document.getElementById("menu-btn");
 const menuPanel=document.getElementById("menu-panel");
 const aboutBtn=document.getElementById("about-btn");
 const feedbackBtn=document.getElementById("feedback-btn");
 const clearProBtn=document.getElementById("clear-pro-btn");
+ const coffeeBtn = document.getElementById("coffeeBtn");
+
+if (coffeeBtn) {
+  coffeeBtn.onclick = () => {
+    window.open("https://buymeacoffee.com/YOURNAME", "_blank");
+  };
+}
+
  
 const importBtn=document.getElementById("import-btn");
 const fileInput=document.getElementById("file-input");
@@ -761,7 +783,10 @@ startCamera().then(()=>{
  <script>
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("service-worker.js");
+ });
 }
+
+});
 </script>
   <div id="snapshot-viewer" style="
   position:fixed;
