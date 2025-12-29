@@ -199,12 +199,14 @@ label{ font-size:.84rem; color:var(--muted); }
 <div class="menu-section">
   <h4>Pro</h4>
   <p>Clean exports (no watermark).</p>
+ <button id="unlockProBtn">Unlock Pro (test)</button>
 </div>
 
 <div class="menu-section">
   <h4>Support</h4>
   <button id="coffeeBtn" class="btn">Buy me a coffee</button>
 </div>
+
 
         </div>
  
@@ -371,7 +373,16 @@ let hasReference=false;
 /* PRO FLAG =========================================================================================*/
 const isPro = localStorage.getItem("valuemirror_pro") === "1";
   /* PRO FLAG =========================================================================================*/
-  
+ 
+  /* === PRO FEATURES START === */
+// Call this after successful payment (currently manual / debug)
+function unlockPro() {
+  localStorage.setItem("valuemirror_pro", "1");
+  alert("Pro unlocked. Thank you for supporting ValueMirror.");
+}
+/* === PRO FEATURES END === */
+
+ 
 /* === NEW FEATURE: Freeze Camera State START === */
 let isFrozen=false;
 /* === NEW FEATURE: Freeze Camera State END === */
@@ -778,6 +789,13 @@ clearProBtn.onclick=()=>{
   localStorage.removeItem("claude_pro");
   alert("Pro reset.");
 };
+ const unlockProBtn = document.getElementById("unlockProBtn");
+if (unlockProBtn) {
+  unlockProBtn.onclick = () => {
+    unlockPro();
+    location.reload();
+  };
+}
  document.addEventListener("click", (e) => {
   if (e.target && e.target.id === "snapshot-close") {
     document.getElementById("snapshot-viewer").style.display = "none";
