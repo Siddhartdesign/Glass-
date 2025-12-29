@@ -785,10 +785,11 @@ aboutBtn.onclick=()=>alert(`ValueMirror \nVersion ${VERSION}`);
 
 feedbackBtn.onclick = () =>
   location.href = "mailto: sidartdesignlab@gmail.com?subject=ValueMirror%20Feedback";
-clearProBtn.onclick=()=>{
-  localStorage.removeItem("claude_pro");
+clearProBtn.onclick = () => {
+  localStorage.removeItem("valuemirror_pro");
   alert("Pro reset.");
 };
+
  const unlockProBtn = document.getElementById("unlockProBtn");
 if (unlockProBtn) {
   unlockProBtn.onclick = () => {
