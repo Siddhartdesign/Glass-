@@ -1,0 +1,9 @@
+Change only 2 lines (so Pro can be tested safely)
+A) Fix reset key (1 line)
+localStorage.removeItem("valuemirror_pro");
+
+B) Keep unlock as-is (already correct)
+localStorage.setItem("valuemirror_pro", "1");
+
+
+That’s it. Nothing else to change.
