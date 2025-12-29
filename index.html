@@ -199,7 +199,13 @@ label{ font-size:.84rem; color:var(--muted); }
 <div class="menu-section">
   <h4>Pro</h4>
   <p>Clean exports (no watermark).</p>
- <button id="unlockProBtn">Unlock Pro (test)</button>
+<!-- PRO TEST ONLY — DO NOT SHIP
+     This button is only for local testing.
+     Must remain commented out for Play Store builds.
+     Real Pro unlock will come via Google Play IAP.
+-->
+<!-- <button id="unlockProBtn">Unlock Pro (test)</button> -->
+
 </div>
 
 <div class="menu-section">
@@ -790,13 +796,21 @@ clearProBtn.onclick = () => {
   alert("Pro reset.");
 };
 
- const unlockProBtn = document.getElementById("unlockProBtn");
+/* PRO TEST ONLY — DO NOT SHIP
+   This manual Pro unlock is ONLY for local / browser testing.
+   Must stay commented out in production builds.
+   Real unlock will be handled by Google Play Billing (IAP).
+*/
+/*
+const unlockProBtn = document.getElementById("unlockProBtn");
 if (unlockProBtn) {
   unlockProBtn.onclick = () => {
     unlockPro();
     location.reload();
   };
 }
+*/
+
  document.addEventListener("click", (e) => {
   if (e.target && e.target.id === "snapshot-close") {
     document.getElementById("snapshot-viewer").style.display = "none";
@@ -811,13 +825,11 @@ startCamera().then(()=>{
   applyTransforms();
   updateUI();
   massingLoop();
- 
-
-});
+ });
   if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("service-worker.js");
 }
-});
+
   
 </script>
  
