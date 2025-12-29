@@ -678,13 +678,14 @@ snapshotBtn.onclick=()=>{
   }
 if (!isPro) {
   t.save();
-  t.globalAlpha = 0.07;
+  t.globalAlpha = 0.12;                 // stronger but still classy
   t.fillStyle = "#fff";
-  t.font = "14px system-ui";
+  t.font = "18px system-ui";            // bigger
   t.textAlign = "right";
-  t.fillText("ValueMirror", w - 12, h - 12);
+  t.fillText("Value Mirror : Made by SidArtDesign ©", w - 16, h - 16);
   t.restore();
 }
+
 
   const data=tmp.toDataURL();
   const viewer = document.getElementById("snapshot-viewer");
