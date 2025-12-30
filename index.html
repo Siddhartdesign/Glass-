@@ -375,6 +375,8 @@ let horizontalFlip=false;
 let verticalFlip=false;
 let massingTones=0;
 let hasReference=false;
+let refImg = null;   // ORIGINAL imported image (for re-processing)
+
   
 /* PRO FLAG =========================================================================================*/
 const isPro = localStorage.getItem("valuemirror_pro") === "1";
@@ -679,14 +681,16 @@ fileInput.onchange=(e)=>{
   const R=new FileReader();
   R.onload=ev=>{
     const img=new Image();
-    img.onload=()=>{
-      hasReference=true;
-      viewMode="reference";
-    generateRefVariants(img, massingTones || 3);
-      renderReference();
-      snapshotBtn.textContent="Resume Live";
-      updateUI();
-    };
+ img.onload=()=>{
+  refImg = img;                 // store original
+  hasReference = true;
+  viewMode = "reference";
+  generateRefVariants(refImg, massingTones || 3);
+  renderReference();
+  snapshotBtn.textContent = "Resume Live";
+  updateUI();
+};
+
     img.src=ev.target.result;
   };
   R.readAsDataURL(f);
