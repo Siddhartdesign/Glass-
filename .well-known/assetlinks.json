@@ -1,0 +1,11 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.siddhartdesign.twa",
+      "sha256_cert_fingerprints":
+        ["43:24:B6:3D:98:BF:B9:B6:1D:A9:A2:13:27:33:6E:4A:6D:33:5B:8D:38:44:93:68:9C:73:0A:92:CA:54:6F:74"]
+    }
+  }
+]
