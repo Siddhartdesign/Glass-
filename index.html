@@ -506,42 +506,39 @@ function updateUI(){
  
 /* MODE CHANGE */
 function setMode(btn){
-  
-if (btn === modeMassing) {
+
+  if (btn === modeMassing) {
 
     // If massing was OFF → turn on at 2
     if (!btn.classList.contains("active")) {
-        modeNormal.classList.remove("active");
-        modeClaude.classList.remove("active");
-        modeMassing.classList.add("active");
-        massingTones = 2;
+      modeNormal.classList.remove("active");
+      modeClaude.classList.remove("active");
+      modeMassing.classList.add("active");
+      massingTones = 2;
 
     } else {
-        // Already active → cycle 2 → 3 → 4 → 5 → 2...
-        massingTones++;
-        /* === NEW FEATURE: Massing Tones Lock START === */
-        // Uncomment the next line to lock massing at 3 (prevent going beyond 3)
-        // if (massingTones > 3) massingTones = 2;
-        /* === NEW FEATURE: Massing Tones Lock END === */
-        if (massingTones > 5) massingTones = 2;
+      // Already active → cycle 2 → 3 → 4 → 5 → 2...
+      massingTones++;
+      if (massingTones > 5) massingTones = 2;
+    }
+
+    // === REF REGEN ON MASSING CHANGE ===
+    if (viewMode === "reference" && hasReference) {
+      generateRefVariants(refImg, massingTones);
+      renderReference();
     }
 
     updateUI();
-    if (viewMode === "reference" && hasReference) renderReference();
     return;
-}
-// keep simple: massing toggles on with a non-zero marker (3)
-  else {
-    modeNormal.classList.remove("active");
-    modeClaude.classList.remove("active");
-    modeMassing.classList.remove("active");
-    btn.classList.add("active");
-    massingTones=(btn===modeMassing?3:0);
   }
- 
-  if(viewMode==="reference" && hasReference)
-    renderReference();
- 
+
+  // Other modes
+  modeNormal.classList.remove("active");
+  modeClaude.classList.remove("active");
+  modeMassing.classList.remove("active");
+  btn.classList.add("active");
+  massingTones = 0;
+
   updateUI();
 }
 
