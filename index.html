@@ -743,7 +743,7 @@ viewer.style.display = "block";
   img.onload=()=>{
     hasReference=true;
     viewMode="reference";
-    generateRefVariants(img); // will apply SeeValue
+    generateRefVariants(img, massingTones || 3); // will apply SeeValue
     renderReference();
     snapshotBtn.textContent="Resume Live";
     updateUI();
