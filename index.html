@@ -434,6 +434,7 @@ function resizeAll(){
 }
 resizeAll();
 addEventListener("resize", resizeAll);
+addEventListener("orientationchange", resizeAll);
  
 /* TRANSFORM LOGIC */
 function applyTransforms(){
@@ -543,7 +544,24 @@ if (btn === modeMassing) {
  
   updateUI();
 }
- 
+
+
+  function drawCover(ctx, src, cw, ch) {
+  const sw = src.videoWidth || src.width;
+  const sh = src.videoHeight || src.height;
+  if (!sw || !sh) return;
+
+  const r = Math.max(cw / sw, ch / sh);
+  const dw = sw * r;
+  const dh = sh * r;
+  const dx = (cw - dw) / 2;
+  const dy = (ch - dh) / 2;
+
+  ctx.drawImage(src, dx, dy, dw, dh);
+}
+
+
+  
 /* LIVE MASSING - replaced with SeeValue pipeline (pre-blur -> quantize -> post-blur) */
 function massingLoop(){
   requestAnimationFrame(massingLoop);
@@ -564,7 +582,11 @@ function massingLoop(){
     // some browsers may not support ctx.filter; ignore and continue without pre-blur
     ctxMass.filter = 'none';
   }
-  ctxMass.drawImage(sourceVideo,0,0,massing.width,massing.height);
+ctxMass.setTransform(1,0,0,1,0,0);
+ctxMass.clearRect(0,0,massing.width,massing.height);
+drawCover(ctxMass, sourceVideo, massing.width, massing.height);
+;
+
   ctxMass.filter = "none";
 
   // quantize (value channel)
@@ -584,7 +606,9 @@ let q = Math.floor(v / STEP) * STEP + STEP * 0.5;
   if (SV_POST > 0) {
     try {
       ctxMass.filter = `blur(${SV_POST}px)`;
+      ctxMass.setTransform(1,0,0,1,0,0);
       ctxMass.drawImage(massing,0,0);
+
       ctxMass.filter = "none";
     } catch(e) {
       // ignore filter errors
