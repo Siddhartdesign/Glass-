@@ -1,1 +1,5 @@
-include: [".well-known"]
+include: 
+  - ".well-known"
+  - ".well-known/assetlinks.json"
+
+exclude: []
