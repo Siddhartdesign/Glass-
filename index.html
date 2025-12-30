@@ -698,12 +698,7 @@ fileInput.onchange=(e)=>{
  
 /* SNAPSHOT */
 snapshotBtn.onclick=()=>{
-  if(viewMode==="reference"){
-    viewMode="live";
-    snapshotBtn.textContent="Snapshot";
-    updateUI();
-    return;
-  }
+
 
   const w=reference.width, h=reference.height;
   const tmp=createC(w,h);
