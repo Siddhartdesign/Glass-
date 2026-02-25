@@ -1,4 +1,4 @@
-const CACHE = "valuemirror-v4";
+const CACHE = "valuemirror-v5";
 const ASSETS = [
   "./",
   "./index.html",
