@@ -3,9 +3,10 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-"package_name": "io.github.siddhartdesign.valuemirror.app",
-      "sha256_cert_fingerprints":
-        ["43:24:B6:3D:98:BF:B9:B6:1D:A9:A2:13:27:33:6E:4A:6D:33:5B:8D:38:44:93:68:9C:73:0A:92:CA:54:6F:74"]
+      "package_name": "io.github.siddhartdesign.valuemirror.app",
+      "sha256_cert_fingerprints": [
+        "89:62:FD:76:1D:D1:5F:68:C5:4A:BB:85:C0:D5:34:BF:23:BB:F0:EA:E9:B7:CE:BF:9B:41:4C:85:08:DF:12:17"
+      ]
     }
   }
 ]
