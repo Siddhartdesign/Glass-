@@ -1,0 +1,1357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<!-- 
+  HIGH-DPI DISPLAY COMPLIANCE FOR WINDOWS STORE
+  This app properly handles high-DPI displays (200% scaling) as required by
+  Microsoft Store policy 10.1.2.10. All canvas rendering uses devicePixelRatio
+  to ensure crisp visuals at 2560x1600 @ 200% scaling and similar configurations.
+-->
+<title>ValueMirror</title>
+ <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f0f0f">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#0f0f0f; --accent:#d4a373; --text:#fff; --muted:rgba(255,255,255,0.55);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial}
+/* === ANDROID CAPACITOR FIX: Use dvh and safe-area to fill screen correctly === */
+.app{
+  position:relative;
+  width:100vw;
+  /* Use 100dvh with fallback for older WebViews */
+  height:100vh;
+  height:100dvh;
+  overflow:hidden;
+}
+ 
+/* === ANDROID CAPACITOR FIX: Robust video/canvas layout === */
+video, canvas {
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  /* CRITICAL: prevents stretching on narrow/wide/tall devices */
+  object-fit:cover;
+  /* Prevent browser UI elements on the video */
+  -webkit-user-select:none;
+  user-select:none;
+}
+#camera{z-index:1;transition:transform .2s,filter .2s;}
+#massing{z-index:2;display:none;image-rendering:pixelated;}
+#reference{z-index:3;display:none;image-rendering:pixelated;
+}
+
+/* === NEW FEATURE: Frozen Frame Canvas START === */
+#frozen{z-index:1;display:none;transition:transform .2s,filter .2s;}
+/* === NEW FEATURE: Frozen Frame Canvas END === */
+ 
+/* UI */
+.ui{
+  position:absolute; inset:0;
+  z-index:10; display:flex; flex-direction:column;
+  justify-content:space-between;
+  pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.6)0%,rgba(0,0,0,0)25%,rgba(0,0,0,0)70%,rgba(0,0,0,.8)100%);
+}
+ 
+.top{
+  /* ANDROID CAPACITOR FIX: Push below the status bar using safe-area inset */
+  padding-top: calc(12px + env(safe-area-inset-top));
+  padding-bottom: 12px;
+  display:flex; justify-content:space-between; align-items:center;
+  pointer-events:auto;
+}
+.top{
+  padding-right: calc(14px + env(safe-area-inset-right));
+  padding-left:  calc(14px + env(safe-area-inset-left));
+}
+
+@media (max-width:390px){
+  .icon-btn{ width:52px; }
+}
+.title{
+  font-weight:200; opacity:.35; letter-spacing:2px;
+  font-size:1rem; text-transform:uppercase; margin:0;
+}
+ 
+.icon-row{ display:flex; gap:8px; }
+.icon-btn{
+  background:rgba(255,255,255,.08);
+  border:none; border-radius:12px;
+  width:56px; height:64px;
+  padding-top:6px;
+  display:flex; flex-direction:column; justify-content:flex-start; align-items:center;
+  cursor:pointer; color:#fff;
+}
+.icon-btn svg{ width:24px; height:24px; }
+.icon-label{ font-size:.68rem; margin-top:4px; opacity:.8; }
+ 
+/* Hide camera-only buttons in reference mode */
+.hidden-when-ref{
+  transition:opacity .15s;
+}
+ 
+.controls{
+  pointer-events:auto;
+  /* ANDROID CAPACITOR FIX: Pad above Android gesture navigation bar */
+  padding: 14px 14px calc(14px + env(safe-area-inset-bottom));
+  background:rgba(0,0,0,.45);
+  backdrop-filter:blur(8px);
+  display:flex; flex-direction:column; gap:12px;
+}
+ 
+.mode-group{
+  display:flex;
+  background:rgba(255,255,255,.06);
+  padding:4px;
+  border-radius:12px;
+}
+.mode-group button{
+  flex:1; border:none;
+  background:transparent;
+  padding:10px;
+  border-radius:8px;
+  font-size:.92rem;
+  color:#ccc;
+}
+.mode-group button.active{
+  background:#fff;
+  color:#000;
+  font-weight:700;
+  box-shadow:0 0 0 1px rgba(0,0,0,.08),
+             0 4px 12px rgba(0,0,0,.25);
+}
+ 
+label{ font-size:.84rem; color:var(--muted); }
+.range{ width:100%; accent-color:var(--accent); }
+ 
+.primary-row{
+  display:flex; gap:10px; align-items:center;
+}
+ 
+.snap-btn{
+  background:var(--accent);
+  border:none;
+  border-radius:12px;
+  padding:12px;
+  font-weight:700;
+  font-size:1rem;
+  color:#000;
+  flex:1;
+  cursor:pointer;
+}
+ 
+#mass-info{ font-size:.82rem; color:#aaa; }
+ 
+#darken-overlay{
+  position:absolute; inset:0;
+  background:rgba(0,0,0,.55);
+  z-index:6000;
+  display:none;
+  pointer-events:none;
+}
+ 
+.menu-panel{
+  position:absolute;
+  right:8px;
+  /* ANDROID CAPACITOR FIX: Offset below status bar + top bar height */
+  top: calc(62px + env(safe-area-inset-top));
+  background:rgba(15,15,15,0.96);
+  backdrop-filter:blur(12px);
+  padding:12px;
+  border-radius:12px;
+  display:none;
+  pointer-events:auto;
+  box-shadow:0 8px 24px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06);
+  min-width:240px;
+}
+.menu-panel button{
+  width:100%;
+  background:transparent;
+  border:none;
+  padding:10px 12px;
+  color:#ddd;
+  text-align:left;
+  cursor:pointer;
+  border-radius:8px;
+  transition:background 0.15s ease;
+}
+
+.menu-panel button:hover{
+  background:rgba(255,255,255,0.08);
+}
+
+.menu-section{
+  margin-bottom:20px;
+}
+
+.menu-section:last-of-type{
+  margin-bottom:0;
+}
+
+.menu-section h4{
+  margin:0 0 10px 0;
+  padding:0 12px;
+  font-size:0.7rem;
+  font-weight:700;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.4);
+}
+
+.menu-section p{
+  margin:0 0 10px 0;
+  padding:0 12px;
+  font-size:0.88rem;
+  color:rgba(255,255,255,0.6);
+  line-height:1.5;
+}
+
+.menu-section button{
+  margin-bottom:4px;
+}
+
+.menu-section button:last-child{
+  margin-bottom:0;
+}
+
+/* === NEW FEATURE: Hide Debug Button START === */
+#clear-pro-btn{
+  display:none;
+}
+/* === NEW FEATURE: Hide Debug Button END === */
+ 
+@media(max-width:420px){
+  .icon-btn{ width:52px; height:60px; }
+  .title{ font-size:.95rem; }
+  .snap-btn{ padding:10px; }
+}
+
+/* === MOBILE CAMERA FALLBACK === */
+#camera-fallback{
+  display:none; /* hidden by default; shown only on mobile camera failure */
+  position:absolute;
+  inset:0;
+  z-index:5; /* above video, below UI */
+  background:#000;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  text-align:center;
+  padding:32px;
+  pointer-events:none;
+}
+#camera-fallback .fallback-main{
+  font-size:1.05rem;
+  font-weight:500;
+  color:rgba(255,255,255,0.75);
+  line-height:1.5;
+  margin-bottom:10px;
+}
+#camera-fallback .fallback-sub{
+  font-size:0.82rem;
+  color:rgba(255,255,255,0.38);
+  line-height:1.5;
+}
+#camera-init-msg{
+  display:none;
+  position:absolute;
+  inset:0;
+  z-index:4;
+  background:transparent;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+}
+#camera-init-msg span{
+  font-size:0.82rem;
+  color:rgba(255,255,255,0.35);
+  letter-spacing:0.5px;
+}
+/* === END MOBILE CAMERA FALLBACK === */
+</style>
+</head>
+ 
+<body>
+  
+<div class="app">
+  <!-- ANDROID CAPACITOR FIX: autoplay + playsinline + muted required for WebView camera.
+       Without these 3 attributes together the WebView shows a large "Play" icon instead of the live feed. -->
+  <video id="camera" autoplay playsinline muted webkit-playsinline x5-playsinline></video>
+
+  <!-- === MOBILE CAMERA FALLBACK: shown only on mobile if camera is blocked/fails === -->
+  <div id="camera-fallback">
+    <div class="fallback-main">Import image to start value mapping</div>
+    <div class="fallback-sub">Use Massing mode to adjust value levels</div>
+  </div>
+  <!-- Temporary init message shown briefly while camera negotiates -->
+  <div id="camera-init-msg"><span>Initializing camera…</span></div>
+  <!-- === END MOBILE CAMERA FALLBACK === -->
+  <!-- === NEW FEATURE: Frozen Frame Canvas START === -->
+  <canvas id="frozen"></canvas>
+  <!-- === NEW FEATURE: Frozen Frame Canvas END === -->
+  <canvas id="massing"></canvas>
+  <canvas id="reference"></canvas>
+  <div id="darken-overlay"></div>
+ 
+  <div class="ui">
+    <div class="top">
+      <div class="title"></div>
+ 
+      <div class="icon-row">
+        <button id="menu-btn" class="icon-btn">
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.6"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+          <div class="icon-label">Menu</div>
+        </button>
+ 
+        <div id="menu-panel" class="menu-panel">
+          
+          <!-- HELP SECTION -->
+          <div class="menu-section">
+            <h4>Help</h4>
+            <button id="how-to-btn" style="font-weight:600; color:var(--accent);">How to use</button>
+          </div>
+
+          <!-- PRO SECTION (DISABLED FOR V1 - Re-enable when payment is integrated) -->
+          <!--
+          <div class="menu-section">
+            <h4>Pro</h4>
+            <p>Clean exports (no watermark).</p>
+          </div>
+          -->
+
+          <!-- ABOUT SECTION -->
+          <div class="menu-section">
+            <h4>About</h4>
+            <button id="version-btn" style="font-weight:600; color:var(--accent);">Version <span style="font-weight:300; color:rgba(255,255,255,0.65);">1.0.0</span></button>
+            <button id="feedback-btn" style="font-weight:600; color:var(--accent);">Send feedback</button>
+          </div>
+
+          <!-- SUPPORT SECTION (HIDDEN FOR V1) -->
+          <!-- 
+          <div class="menu-section">
+            <h4>Support</h4>
+            <button id="coffeeBtn" class="btn">Buy me a coffee</button>
+          </div>
+          -->
+
+          <!-- DEBUG (ALWAYS HIDDEN IN PRODUCTION) -->
+          <button id="clear-pro-btn" style="display:none;">Reset Pro (debug)</button>
+
+        </div>
+ 
+        <button id="import-btn" class="icon-btn">
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.6">
+  <path d="M12 21V9"/>
+  <path d="M19 14l-7 7-7-7"/>
+  <path d="M5 3h14"/>
+</svg>
+          <div class="icon-label">Import</div>
+        </button>
+
+        <!-- === NEW FEATURE: Freeze Camera Button START === -->
+        <button id="freeze-btn" class="icon-btn hidden-when-ref">
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.6">
+            <rect x="6" y="4" width="4" height="16" fill="currentColor"/>
+            <rect x="14" y="4" width="4" height="16" fill="currentColor"/>
+          </svg>
+          <div class="icon-label">Freeze</div>
+        </button>
+        <!-- === NEW FEATURE: Freeze Camera Button END === -->
+
+        <!-- === NEW FEATURE: Horizontal Flip Button START === -->
+        <button id="flip-h-btn" class="icon-btn">
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8">
+  <path d="M4 12h16"/>
+  <path d="M8 8l-4 4 4 4"/>
+  <path d="M16 8l4 4-4 4"/>
+</svg>
+          <div class="icon-label">Flip H</div>
+        </button>
+        <!-- === NEW FEATURE: Horizontal Flip Button END === -->
+ 
+        <button id="flip-btn" class="icon-btn">
+          <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" stroke-width="1.8">
+  <path d="M12 4v16"/>
+  <path d="M8 8l4-4 4 4"/>
+  <path d="M8 16l4 4 4-4"/>
+</svg>
+          <div class="icon-label">Flip V</div>
+        </button>
+ 
+        <button id="switch-btn" class="icon-btn hidden-when-ref">
+        <svg viewBox="0 0 24 24"
+     stroke="currentColor"
+     fill="none"
+     stroke-width="1.6"
+     stroke-linecap="round"
+     stroke-linejoin="round">
+
+  <!-- camera body -->
+  <rect x="8" y="9.8" width="8" height="5.8" rx="1.8"/>
+  <path d="M10.2 9.8l0.9-1.3h1.8l0.9 1.3"/>
+
+  <!-- lens -->
+  <circle cx="12" cy="12.7" r="1.6"/>
+
+  <!-- top arc -->
+  <path d="M3.5 12a9.5 9.5 0 0 1 15-7.5"/>
+  <!-- dot at end of top arc -->
+  <circle cx="18.8" cy="5.3" r="0.9" fill="currentColor"/>
+
+  <!-- bottom arc -->
+  <path d="M20.5 12a9.5 9.5 0 0 1-15 7.5"/>
+  <!-- dot at end of bottom arc -->
+  <circle cx="5.2" cy="18.7" r="0.9" fill="currentColor"/>
+
+</svg>
+          <div class="icon-label">Switch</div>
+        </button>
+      </div>
+    </div>
+ 
+    <div class="controls">
+      <div class="mode-group">
+        <button id="mode-normal" class="active">Normal</button>
+        <button id="mode-claude">Black Mirror</button>
+        <button id="mode-massing">Massing</button>
+      </div>
+ 
+      <div>
+        <label>Exposure (Dimmer)</label>
+        <input id="dim" class="range" type="range" min="20" max="150" step="0.1" value="100">
+      </div>
+ 
+      <div class="primary-row">
+        <button id="snapshot" class="snap-btn">Snapshot</button>
+        <div id="mass-info">Massing: Off</div>
+      </div>
+    </div>
+ 
+  </div>
+</div>
+ 
+<input id="file-input" type="file" accept="image/*" style="display:none">
+ 
+<script>
+ document.addEventListener("DOMContentLoaded", () => {
+
+/* === NEW FEATURE: Version Constant START === */
+const VERSION = "1.0.0";
+/* === NEW FEATURE: Version Constant END === */
+
+/* ELEMENTS */
+const video=document.getElementById("camera");
+const massing=document.getElementById("massing");
+const reference=document.getElementById("reference");
+/* === NEW FEATURE: Frozen Canvas Element START === */
+const frozen=document.getElementById("frozen");
+const ctxFrozen=frozen.getContext("2d");
+/* === NEW FEATURE: Frozen Canvas Element END === */
+const ctxMass=massing.getContext("2d");
+const ctxRef=reference.getContext("2d");
+
+const menuBtn=document.getElementById("menu-btn");
+const menuPanel=document.getElementById("menu-panel");
+const howToBtn=document.getElementById("how-to-btn");
+const versionBtn=document.getElementById("version-btn");
+const feedbackBtn=document.getElementById("feedback-btn");
+const clearProBtn=document.getElementById("clear-pro-btn");
+
+// Help card elements
+const helpOverlay=document.getElementById("help-overlay");
+const helpClose=document.getElementById("help-close");
+
+// Coffee button (commented out in HTML for v1)
+// const coffeeBtn = document.getElementById("coffeeBtn");
+// if (coffeeBtn) {
+//   coffeeBtn.onclick = () => {
+//     window.open("https://buymeacoffee.com/sidartdesign", "_blank");
+//   };
+// }
+
+ 
+const importBtn=document.getElementById("import-btn");
+const fileInput=document.getElementById("file-input");
+
+/* === NEW FEATURE: Freeze Camera Button START === */
+const freezeBtn=document.getElementById("freeze-btn");
+/* === NEW FEATURE: Freeze Camera Button END === */
+
+/* === NEW FEATURE: Horizontal Flip Button START === */
+const flipHBtn=document.getElementById("flip-h-btn");
+/* === NEW FEATURE: Horizontal Flip Button END === */
+
+const flipBtn=document.getElementById("flip-btn");
+const switchBtn=document.getElementById("switch-btn");
+ 
+const modeNormal=document.getElementById("mode-normal");
+const modeClaude=document.getElementById("mode-claude");
+const modeMassing=document.getElementById("mode-massing");
+ 
+const dim=document.getElementById("dim");
+const snapshotBtn=document.getElementById("snapshot");
+const massInfo=document.getElementById("mass-info");
+ 
+const darkenOverlay=document.getElementById("darken-overlay");
+ 
+/* STATE */
+let viewMode="live";     // "live" or "reference"
+let facingMode="environment";
+let isSelfie=false;
+/* === NEW FEATURE: Horizontal Flip State START === */
+let horizontalFlip=false;
+/* === NEW FEATURE: Horizontal Flip State END === */
+let verticalFlip=false;
+let massingTones=0;
+let hasReference=false;
+let refImg = null;   // ORIGINAL imported image (for re-processing)
+
+  
+/* PRO FLAG =========================================================================================*/
+const isPro = localStorage.getItem("valuemirror_pro") === "1";
+  /* PRO FLAG =========================================================================================*/
+ 
+  /* === PRO FEATURES START === */
+// Call this after successful payment (currently manual / debug)
+function unlockPro() {
+  localStorage.setItem("valuemirror_pro", "1");
+  alert("Pro unlocked. Thank you for supporting ValueMirror.");
+}
+/* === PRO FEATURES END === */
+
+ 
+/* === NEW FEATURE: Freeze Camera State START === */
+let isFrozen=false;
+/* === NEW FEATURE: Freeze Camera State END === */
+
+/* === HIGH-DPI SCALING FIX FOR WINDOWS STORE === */
+// This ensures the app works correctly at 200% scaling (2560x1600 @ 200%)
+// Required by Microsoft Store policy 10.1.2.10
+const DPR = window.devicePixelRatio || 1;
+const SCALE = 1; // Logical pixel scale (keep at 1 for consistent UI)
+/* === END HIGH-DPI SCALING FIX === */
+
+/* SeeValue parameters - SINGLE STYLE applied everywhere */
+const SV_PRE = 1.6;
+const SV_POST = 0.45;
+const SV_STEP = 255 / 3; // quantize into 3 steps (matching SeeValue)
+ 
+/* MASSING BUCKETS - retained but no longer used for 3/5 switching */
+const THREE=[42,122,205];
+const FIVE=[28,90,140,190,242];
+ 
+function mapVal(v, B){
+  let best=B[0], dist=Infinity;
+  for(let b of B){
+    let d=Math.abs(v-b);
+    if(d<dist){dist=d;best=b;}
+  }
+  return best;
+}
+ 
+/* === MOBILE CAMERA FALLBACK HELPERS === */
+const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+const cameraFallback = document.getElementById("camera-fallback");
+const cameraInitMsg  = document.getElementById("camera-init-msg");
+
+function showCameraFallback(){
+  if(!isMobile) return; // desktop: never show fallback
+  cameraInitMsg.style.display = "none";
+  cameraFallback.style.display = "flex";
+}
+function hideCameraFallback(){
+  cameraFallback.style.display = "none";
+  cameraInitMsg.style.display  = "none";
+}
+function showInitMsg(){
+  if(!isMobile) return;
+  cameraInitMsg.style.display = "flex";
+  cameraFallback.style.display = "none";
+}
+/* === END MOBILE CAMERA FALLBACK HELPERS === */
+
+/* CAMERA INIT */
+/* === ANDROID CAPACITOR FIX: Hardened camera init for WebView === */
+async function startCamera(){
+  try{
+    showInitMsg(); // "Initializing camera…" shown briefly while negotiating
+
+    if(video.srcObject){
+      video.srcObject.getTracks().forEach(t=>t.stop());
+      video.srcObject = null;
+    }
+    const constraints = {
+      video: {
+        facingMode,
+        width:  { ideal: 1920 },
+        height: { ideal: 1080 }
+      },
+      audio: false
+    };
+    const s = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = s;
+    video.muted    = true;
+    video.playsInline = true;
+
+    const playPromise = video.play();
+    if(playPromise !== undefined){
+      playPromise
+        .then(()=>{
+          hideCameraFallback(); // camera started — hide everything
+        })
+        .catch(err => {
+          console.warn("video.play() was prevented:", err);
+          showCameraFallback(); // show fallback if autoplay blocked
+          // Re-attempt on first user touch
+          document.addEventListener("pointerdown", ()=>{
+            video.play().then(hideCameraFallback).catch(()=>{});
+          }, { once: true });
+        });
+    } else {
+      hideCameraFallback(); // older API — assume success
+    }
+  }catch(e){
+    console.error("cam error", e);
+    showCameraFallback(); // permission denied or no camera → show fallback
+  }
+}
+ 
+/* SIZING */
+function resizeAll(){
+  /* === HIGH-DPI SCALING FIX === */
+  // Use logical pixels for layout, physical pixels for canvas rendering
+  const logicalWidth = innerWidth;
+  const logicalHeight = innerHeight;
+  
+  // Set canvas logical dimensions
+  const w = Math.floor(logicalWidth * SCALE);
+  const h = Math.floor(logicalHeight * SCALE);
+  
+  // Set canvas physical dimensions for crisp rendering on high-DPI displays
+  massing.width = reference.width = frozen.width = w * DPR;
+  massing.height = reference.height = frozen.height = h * DPR;
+  
+  // Scale canvas rendering context to match physical pixels
+  const canvases = [massing, reference, frozen];
+  canvases.forEach(canvas => {
+    const ctx = canvas.getContext('2d');
+    ctx.scale(DPR, DPR);
+  });
+  
+  // Set CSS size to logical pixels (this is what the user sees)
+  canvases.forEach(canvas => {
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+  });
+  /* === END HIGH-DPI SCALING FIX === */
+}
+resizeAll();
+addEventListener("resize", resizeAll);
+addEventListener("orientationchange", resizeAll);
+ 
+/* TRANSFORM LOGIC */
+function applyTransforms(){
+  /* === NEW FEATURE: Apply horizontal flip START === */
+  const sx=(isSelfie || horizontalFlip)?-1:1;
+  /* === NEW FEATURE: Apply horizontal flip END === */
+  const sy=verticalFlip?-1:1;
+  video.style.transform=`scaleX(${sx}) scaleY(${sy})`;
+  /* === NEW FEATURE: Apply transforms to frozen canvas START === */
+  frozen.style.transform=`scaleX(${sx}) scaleY(${sy})`;
+  /* === NEW FEATURE: Apply transforms to frozen canvas END === */
+  reference.style.transform=`scaleX(${sx}) scaleY(${sy})`;
+  massing.style.transform=`scaleX(${sx}) scaleY(${sy})`;
+}
+ 
+/* FILTERING */
+function filterString(){
+  const exp=dim.value;
+  if(modeClaude.classList.contains("active"))
+    return `grayscale(100%) contrast(90%) brightness(${exp}%)`;
+  return `brightness(${exp}%)`;
+}
+ 
+function updateUI(){
+  video.style.filter=filterString();
+  /* === NEW FEATURE: Apply filters to frozen canvas START === */
+  frozen.style.filter=filterString();
+  /* === NEW FEATURE: Apply filters to frozen canvas END === */
+  reference.style.filter=filterString();
+ 
+  if(viewMode==="live"){
+    /* === NEW FEATURE: Show frozen or video based on state START === */
+    if(isFrozen){
+      video.style.visibility="hidden";
+      frozen.style.display="block";
+    } else {
+      video.style.visibility="visible";
+      frozen.style.display="none";
+    }
+    /* === NEW FEATURE: Show frozen or video based on state END === */
+    reference.style.display="none";
+    massing.style.display=massingTones?"block":"none";
+ 
+    document.querySelectorAll(".hidden-when-ref")
+      .forEach(el=>{ el.style.opacity=1; el.style.pointerEvents="auto"; });
+ 
+  } else {
+    video.style.visibility="hidden";
+    /* === NEW FEATURE: Hide frozen in reference mode START === */
+    frozen.style.display="none";
+    /* === NEW FEATURE: Hide frozen in reference mode END === */
+    reference.style.display="block";
+    massing.style.display="none";
+ 
+    document.querySelectorAll(".hidden-when-ref")
+      .forEach(el=>{ el.style.opacity=0.08; el.style.pointerEvents="none"; });
+  }
+ 
+  massInfo.textContent=massingTones?`Massing • ${massingTones}`:"Massing: Off";
+
+  /* === NEW FEATURE: Freeze Button UI Update START === */
+  if(isFrozen){
+    freezeBtn.style.background="rgba(212,163,115,0.3)";
+  } else {
+    freezeBtn.style.background="rgba(255,255,255,.08)";
+  }
+  /* === NEW FEATURE: Freeze Button UI Update END === */
+}
+ 
+/* MODE CHANGE */
+function setMode(btn){
+
+  if (btn === modeMassing) {
+
+    // If massing was OFF → turn on at 2
+    if (!btn.classList.contains("active")) {
+      modeNormal.classList.remove("active");
+      modeClaude.classList.remove("active");
+      modeMassing.classList.add("active");
+      massingTones = 2;
+
+    } else {
+      // Already active → cycle 2 → 3 → 4 → 5 → 2...
+      massingTones++;
+      if (massingTones > 5) massingTones = 2;
+    }
+
+    // === REF REGEN ON MASSING CHANGE ===
+    if (viewMode === "reference" && hasReference) {
+      generateRefVariants(refImg, massingTones);
+      renderReference();
+    }
+
+    updateUI();
+    return;
+  }
+
+  // Other modes (Normal or Black Mirror)
+  modeNormal.classList.remove("active");
+  modeClaude.classList.remove("active");
+  modeMassing.classList.remove("active");
+  btn.classList.add("active");
+  massingTones = 0;
+
+  // === UPDATE REFERENCE VIEW WHEN SWITCHING MODES ===
+  if (viewMode === "reference" && hasReference) {
+    renderReference();
+  }
+
+  updateUI();
+}
+
+
+  function drawCover(ctx, src, cw, ch) {
+  const sw = src.videoWidth || src.width;
+  const sh = src.videoHeight || src.height;
+  if (!sw || !sh) return;
+
+  const r = Math.max(cw / sw, ch / sh);
+  const dw = sw * r;
+  const dh = sh * r;
+  const dx = (cw - dw) / 2;
+  const dy = (ch - dh) / 2;
+
+  ctx.drawImage(src, dx, dy, dw, dh);
+}
+
+  function drawContain(ctx, src, cw, ch) {
+  const sw = src.videoWidth || src.width;
+  const sh = src.videoHeight || src.height;
+  if (!sw || !sh) return;
+
+  const sr = sw / sh;
+  const cr = cw / ch;
+
+  let dw, dh;
+  if (sr > cr) {
+    dw = cw;
+    dh = cw / sr;
+  } else {
+    dh = ch;
+    dw = ch * sr;
+  }
+
+  const dx = (cw - dw) / 2;
+  const dy = (ch - dh) / 2;
+
+  ctx.clearRect(0,0,cw,ch);
+  ctx.drawImage(src, dx, dy, dw, dh);
+}
+
+
+  
+/* LIVE MASSING - replaced with SeeValue pipeline (pre-blur -> quantize -> post-blur) */
+function massingLoop(){
+  requestAnimationFrame(massingLoop);
+  if(viewMode==="reference" || !massingTones) return;
+  
+  /* === NEW FEATURE: Use frozen or video for massing START === */
+  let sourceVideo = video;
+  if(isFrozen){
+    sourceVideo = frozen;
+  }
+  if(sourceVideo.readyState<2 && !isFrozen) return;
+  /* === NEW FEATURE: Use frozen or video for massing END === */
+
+  /* === HIGH-DPI FIX: Use logical dimensions === */
+  const logicalW = Math.floor(innerWidth * SCALE);
+  const logicalH = Math.floor(innerHeight * SCALE);
+  /* === END HIGH-DPI FIX === */
+
+  // PRE BLUR onto massing canvas
+  try {
+    ctxMass.filter = `blur(${SV_PRE}px)`;
+  } catch(e) {
+    // some browsers may not support ctx.filter; ignore and continue without pre-blur
+    ctxMass.filter = 'none';
+  }
+ctxMass.setTransform(1,0,0,1,0,0);
+ctxMass.scale(DPR, DPR);
+ctxMass.clearRect(0,0,logicalW,logicalH);
+drawCover(ctxMass, sourceVideo, logicalW, logicalH);
+;
+
+  ctxMass.filter = "none";
+
+  // quantize (value channel)
+  const img = ctxMass.getImageData(0,0,massing.width,massing.height);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+const STEP = 255 / massingTones;   // dynamic: 2,3,4,5
+let q = Math.floor(v / STEP) * STEP + STEP * 0.5;
+    if (q > 255) q = 255;
+    d[i] = d[i+1] = d[i+2] = q;
+    // leave alpha as-is
+  }
+  ctxMass.putImageData(img,0,0);
+
+  // POST BLUR: draw the canvas onto itself with blur to simulate subtle smoothing
+  if (SV_POST > 0) {
+    try {
+      ctxMass.filter = `blur(${SV_POST}px)`;
+      ctxMass.setTransform(1,0,0,1,0,0);
+      ctxMass.scale(DPR, DPR);
+      ctxMass.drawImage(massing,0,0,logicalW,logicalH);
+
+      ctxMass.filter = "none";
+    } catch(e) {
+      // ignore filter errors
+      ctxMass.filter = "none";
+    }
+  }
+}
+ 
+/* REFERENCE VARIANTS - single SeeValue variant for imported images */
+let refO=null, ref3=null, ref5=null;
+ 
+function createC(w,h){const c=document.createElement("canvas");c.width=w;c.height=h;return c;}
+ 
+function generateRefVariants(img,tones){
+  /* === HIGH-DPI FIX: Use logical dimensions === */
+  const logicalW = Math.floor(innerWidth * SCALE);
+  const logicalH = Math.floor(innerHeight * SCALE);
+  const physicalW = logicalW * DPR;
+  const physicalH = logicalH * DPR;
+  /* === END HIGH-DPI FIX === */
+  
+  refO=createC(physicalW,physicalH);
+  let c0=refO.getContext("2d");
+  c0.scale(DPR, DPR);
+
+  // Fit image same way existing code did (cover)
+drawContain(c0, img, logicalW, logicalH);
+
+
+  // PRE BLUR
+  
+
+ // QUANTIZE (use dynamic massing tones)
+let id = c0.getImageData(0,0,physicalW,physicalH);
+let data = id.data;
+
+const STEP = 255 / tones;   // ← tones comes from current massing (2–5)
+
+for (let i = 0; i < data.length; i += 4) {
+  const v = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+  let q = Math.floor(v / STEP) * STEP + STEP * 0.5;
+  if (q > 255) q = 255;
+  data[i] = data[i+1] = data[i+2] = q;
+}
+
+c0.putImageData(id, 0, 0);
+
+  // POST BLUR pass to smooth
+  if (SV_POST > 0) {
+    try {
+      c0.filter = `blur(${SV_POST}px)`;
+      c0.drawImage(refO,0,0,logicalW,logicalH);
+      c0.filter = "none";
+    } catch(e) {
+      c0.filter = "none";
+    }
+  }
+
+  // unify variants - single style everywhere
+  ref3 = refO;
+  ref5 = refO;
+}
+ 
+function renderReference(){
+  if (!refImg) return;
+
+  /* === HIGH-DPI FIX: Use logical dimensions === */
+  const logicalW = Math.floor(innerWidth * SCALE);
+  const logicalH = Math.floor(innerHeight * SCALE);
+  /* === END HIGH-DPI FIX === */
+
+  ctxRef.setTransform(1,0,0,1,0,0);
+  ctxRef.scale(DPR, DPR);
+  ctxRef.clearRect(0,0,logicalW,logicalH);
+
+  if (massingTones && refO) {
+    // MASSING MODE → show processed massing image
+    drawContain(ctxRef, refO, logicalW, logicalH);
+  } else {
+    // NORMAL / BLACK MIRROR → show original with proper filter
+    drawContain(ctxRef, refImg, logicalW, logicalH);
+  }
+  
+  // Apply the current filter mode to the reference canvas
+  // This allows switching between Normal and Black Mirror on imported images
+  reference.style.filter = filterString();
+}
+
+
+ 
+/* IMPORT */
+importBtn.onclick=()=>fileInput.click();
+fileInput.onchange=(e)=>{
+  const f=e.target.files[0];
+  if(!f)return;
+  const R=new FileReader();
+  R.onload=ev=>{
+    const img=new Image();
+ img.onload=()=>{
+  refImg = img;                 // store original
+  hasReference = true;
+  viewMode = "reference";
+  generateRefVariants(refImg, massingTones || 3);
+  renderReference();
+  snapshotBtn.textContent = "Save Image";
+  updateUI();
+};
+
+    img.src=ev.target.result;
+  };
+  R.readAsDataURL(f);
+};
+ 
+/* SNAPSHOT */
+snapshotBtn.onclick=()=>{
+
+  /* === HIGH-DPI FIX: Create snapshot at logical resolution === */
+  const logicalW = Math.floor(innerWidth * SCALE);
+  const logicalH = Math.floor(innerHeight * SCALE);
+  
+  // Create snapshot canvas at physical resolution for crisp export
+  const tmp=createC(logicalW * DPR, logicalH * DPR);
+  const t=tmp.getContext("2d");
+  t.scale(DPR, DPR);
+  /* === END HIGH-DPI FIX === */
+
+  if(viewMode==="reference"){
+    if(massingTones===5) t.drawImage(ref5,0,0,logicalW,logicalH);
+    else if(massingTones===3) t.drawImage(ref3,0,0,logicalW,logicalH);
+    else t.drawImage(refO,0,0,logicalW,logicalH);
+  } else {
+    if(massingTones) t.drawImage(massing,0,0,logicalW,logicalH);
+    else {
+      /* === NEW FEATURE: Snapshot frozen or live START === */
+      const source = isFrozen ? frozen : video;
+      t.drawImage(source,0,0,logicalW,logicalH);
+      /* === NEW FEATURE: Snapshot frozen or live END === */
+    }
+  }
+if (!isPro) {
+  t.save();
+  t.globalAlpha = 0.22;                 // stronger but still classy
+  t.fillStyle = "#fff";
+  t.font = "20px system-ui";            // bigger
+  t.textAlign = "right";
+  t.fillText("Value Mirror : Made by SidArtDesign ©", logicalW - 20, logicalH - 20);
+  t.restore();
+}
+
+
+  const data=tmp.toDataURL();
+  const viewer = document.getElementById("snapshot-viewer");
+const imgEl = document.getElementById("snapshot-img");
+
+imgEl.src = data;
+viewer.style.display = "block";
+
+  const img=new Image();
+  img.onload=()=>{
+    hasReference=true;
+    viewMode="reference";
+    generateRefVariants(img, massingTones || 3); // will apply SeeValue
+    renderReference();
+    snapshotBtn.textContent="Save Image";
+    updateUI();
+  };
+  img.src=data;
+};
+
+/* === NEW FEATURE: Freeze Camera Button Handler START === */
+freezeBtn.onclick=()=>{
+  if(isFrozen){
+    // Unfreeze
+    isFrozen=false;
+  } else {
+    // Freeze current frame - capture video to frozen canvas
+    isFrozen=true;
+    /* === HIGH-DPI FIX: Use logical dimensions for freeze === */
+    const logicalW = Math.floor(innerWidth * SCALE);
+    const logicalH = Math.floor(innerHeight * SCALE);
+    ctxFrozen.setTransform(1,0,0,1,0,0);
+    ctxFrozen.scale(DPR, DPR);
+    ctxFrozen.drawImage(video,0,0,logicalW,logicalH);
+    /* === END HIGH-DPI FIX === */
+  }
+  updateUI();
+};
+/* === NEW FEATURE: Freeze Camera Button Handler END === */
+
+/* === NEW FEATURE: Horizontal Flip Button Handler START === */
+flipHBtn.onclick=()=>{
+  horizontalFlip = !horizontalFlip;
+  applyTransforms();
+};
+
+/* === NEW FEATURE: Horizontal Flip Button Handler END === */
+ 
+/* FLIP */
+flipBtn.onclick=()=>{
+  verticalFlip = !verticalFlip;
+  applyTransforms();
+
+};
+
+/* SWITCH CAMERA */
+switchBtn.onclick=()=>{
+  facingMode=(facingMode==="user"?"environment":"user");
+  isSelfie=(facingMode==="user");
+  startCamera().then(applyTransforms);
+};
+ 
+/* MODES */
+modeNormal.onclick=()=>{setMode(modeNormal);};
+modeClaude.onclick=()=>{setMode(modeClaude);};
+modeMassing.onclick=()=>{setMode(modeMassing);};
+dim.oninput=()=>{renderReference(); updateUI();};
+ 
+/* HOLD-TO-DARKEN */
+let darkenTO=null;
+document.addEventListener("pointerdown",e=>{
+  if(e.target.closest(".controls")||e.target.closest(".icon-btn")||e.target.closest(".menu-panel")) return;
+  darkenTO=setTimeout(()=> darkenOverlay.style.display="block",160);
+});
+document.addEventListener("pointerup",()=>{
+  clearTimeout(darkenTO);
+  darkenOverlay.style.display="none";
+});
+document.addEventListener("pointercancel",()=>{
+  clearTimeout(darkenTO);
+  darkenOverlay.style.display="none";
+});
+ 
+/* MENU */
+menuBtn.onclick=e=>{
+  e.stopPropagation();
+  menuPanel.style.display=menuPanel.style.display==="block"?"none":"block";
+};
+document.addEventListener("click",()=>menuPanel.style.display="none");
+
+/* HOW TO HELP CARD */
+if (howToBtn) {
+  howToBtn.onclick = (e) => {
+    e.stopPropagation();
+    helpOverlay.style.display = "flex";
+    menuPanel.style.display = "none";
+  };
+}
+
+if (helpClose) {
+  helpClose.onclick = () => {
+    helpOverlay.style.display = "none";
+  };
+}
+
+if (helpOverlay) {
+  helpOverlay.onclick = (e) => {
+    if (e.target === helpOverlay) {
+      helpOverlay.style.display = "none";
+    }
+  };
+}
+
+/* VERSION */
+// Version is displayed inline in the menu, no popup needed
+
+/* FEEDBACK */
+feedbackBtn.onclick = (e) => {
+  e.stopPropagation();
+  location.href = "mailto:sidartdesignlab@gmail.com?subject=ValueMirror%20Feedback";
+};
+
+/* DEBUG */
+if (clearProBtn) {
+  clearProBtn.onclick = () => {
+    localStorage.removeItem("valuemirror_pro");
+    alert("Pro reset.");
+  };
+}
+
+
+/* PRO TEST ONLY — DO NOT SHIP
+   This manual Pro unlock is ONLY for local / browser testing.
+   Must stay commented out in production builds.
+   Real unlock will be handled by Google Play Billing (IAP).
+*/
+/*
+const unlockProBtn = document.getElementById("unlockProBtn");
+if (unlockProBtn) {
+  unlockProBtn.onclick = () => {
+    unlockPro();
+    location.reload();
+  };
+}
+*/
+
+ document.addEventListener("click", (e) => {
+  if (e.target && e.target.id === "snapshot-close") {
+    const viewer = document.getElementById("snapshot-viewer");
+    viewer.style.display = "none";
+
+    // Clear the image src to free memory
+    document.getElementById("snapshot-img").src = "";
+
+    // === FIX: Full state reset so app is ready for another snapshot ===
+    // If we were in reference mode (viewing a saved image), stay there —
+    // the reference is still loaded and useful.
+    // But reset the snapshot button text so it reads "Snapshot" again,
+    // not "Save Image", so the user can take a new one.
+    snapshotBtn.textContent = "Snapshot";
+
+    // If the user had NOT yet imported/snapshotted anything, go back to live
+    // If they had a reference loaded, keep reference mode so they can still work
+    if (!hasReference) {
+      viewMode = "live";
+      // Resume camera if it was live
+      if (!isFrozen) {
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {});
+        }
+      }
+    }
+    updateUI();
+  }
+});
+
+/* === SAVE IMAGE BUTTON: actual file download === */
+document.addEventListener("click", (e) => {
+  if (e.target && e.target.id === "snapshot-save") {
+    const imgEl = document.getElementById("snapshot-img");
+    if (!imgEl.src || imgEl.src === window.location.href) return;
+
+    // Try native share (Android TWA supports this well)
+    if (navigator.share && navigator.canShare) {
+      // Convert data URL to blob for share
+      fetch(imgEl.src)
+        .then(r => r.blob())
+        .then(blob => {
+          const file = new File([blob], "valuemirror.png", { type: "image/png" });
+          if (navigator.canShare({ files: [file] })) {
+            return navigator.share({ files: [file], title: "ValueMirror" });
+          }
+          throw new Error("cannot share files");
+        })
+        .catch(() => {
+          // Fallback: download link
+          const a = document.createElement("a");
+          a.href = imgEl.src;
+          a.download = "valuemirror.png";
+          a.click();
+        });
+    } else {
+      // Desktop or TWA without share: trigger download
+      const a = document.createElement("a");
+      a.href = imgEl.src;
+      a.download = "valuemirror.png";
+      a.click();
+    }
+  }
+});
+/* INIT */
+startCamera().then(()=>{
+  applyTransforms();
+  updateUI();
+  massingLoop();
+ });
+  if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
+});
+  
+</script>
+ 
+  <div id="snapshot-viewer" style="
+  position:fixed;
+  inset:0;
+  background:#000;
+  display:none;
+  z-index:9999;
+">
+  <button id="snapshot-close" style="
+    position:absolute;
+    top:calc(12px + env(safe-area-inset-top));
+    left:calc(12px + env(safe-area-inset-left));
+    background:rgba(0,0,0,.6);
+    color:#fff;
+    border:none;
+    font-size:22px;
+    padding:6px 12px;
+    border-radius:10px;
+    cursor:pointer;
+    z-index:1;
+  ">✕</button>
+
+  <!-- Save Image button — actually downloads the file -->
+  <button id="snapshot-save" style="
+    position:absolute;
+    top:calc(12px + env(safe-area-inset-top));
+    right:calc(12px + env(safe-area-inset-right));
+    background:rgba(212,163,115,0.9);
+    color:#000;
+    border:none;
+    font-size:0.9rem;
+    font-weight:700;
+    padding:8px 16px;
+    border-radius:10px;
+    cursor:pointer;
+    z-index:1;
+  ">Save Image</button>
+
+  <img id="snapshot-img" style="
+    width:100%;
+    height:100%;
+    object-fit:contain;
+  ">
+</div>
+
+<!-- Help Card Overlay -->
+<div id="help-overlay" style="
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.8);
+  z-index:10000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+">
+  <div id="help-card" style="
+    background:rgba(20,20,20,0.95);
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:12px;
+    padding:28px 24px;
+    max-width:420px;
+    width:100%;
+    position:relative;
+  ">
+    <button id="help-close" style="
+      position:absolute;
+      top:12px;
+      right:12px;
+      background:rgba(255,255,255,0.1);
+      border:none;
+      color:#fff;
+      font-size:20px;
+      width:32px;
+      height:32px;
+      border-radius:8px;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    ">✕</button>
+
+    <h2 style="
+      margin:0 0 20px 0;
+      font-size:1.1rem;
+      font-weight:600;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      color:#fff;
+    ">HOW TO USE</h2>
+    
+    <div style="
+      font-size:0.95rem;
+      line-height:1.8;
+      color:rgba(255,255,255,0.85);
+    ">
+      <p style="margin:0 0 12px 0;">1. Import an image or use the live camera</p>
+      <p style="margin:0 0 12px 0;">2. Apply Massing to see clear value groupings</p>
+      <p style="margin:0 0 12px 0;">3. Use the Dimmer to reduce brightness and read values faster</p>
+      <p style="margin:0 0 12px 0;">4. Adjust contrast and exposure with sliders</p>
+      <p style="margin:0 0 24px 0;">5. Save the image</p>
+      
+      <div style="
+        font-size:0.85rem;
+        line-height:1.6;
+        color:rgba(255,255,255,0.5);
+        font-style:italic;
+        border-top:1px solid rgba(255,255,255,0.1);
+        padding-top:16px;
+      ">
+        <p style="margin:0;">~ Inspired by the Claude glass,</p>
+        <p style="margin:0;">A darkened mirror used by painters in Europe</p>
+        <p style="margin:0;">during the 18th–19th century to reduce color and compress light,</p>
+        <p style="margin:0;">making value relationships easier to see.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
+  
